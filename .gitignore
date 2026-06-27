@@ -1,0 +1,9 @@
+# MCU/Arduino builds
+build/
+bin/
+obj/
+*.local.txt
+
+# OS files
+.DS_Store
+Thumbs.db
