@@ -1,0 +1,25 @@
+int rows[] = {2, 5, 4, 3}; // Usually the positive legs (Anodes)
+int cols[] = {6, 7, 8, 9};   // Usually the negative legs (Cathodes)
+
+void setup() {
+  
+  for (int i = 0; i < 4; i++) {
+    pinMode(rows[i], OUTPUT);
+    pinMode(cols[i], OUTPUT);
+  }
+}
+
+void loop() {
+  
+  for (int i = 0; i < 4; i++) {
+    digitalWrite(rows[i], LOW);
+    digitalWrite(cols[i], HIGH);
+  }
+
+  int targetRow = 1; 
+  int targetCol = 2; 
+  digitalWrite(rows[targetRow], HIGH); 
+  digitalWrite(cols[targetCol], LOW);  
+  
+  delay(500); 
+}
