@@ -1,0 +1,15 @@
+float tmp=A1;
+void setup()
+{
+  pinMode(A1,INPUT);
+  Serial.begin(9600);
+}
+
+void loop(){
+  int value=analogRead(tmp);
+  float volt=value*(5000/1024);
+  float temp=(volt-500)/10;
+    Serial.print(temp);
+    Serial.println("C");
+    delay(1000);
+}
