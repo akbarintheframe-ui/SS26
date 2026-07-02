@@ -1,4 +1,5 @@
 const int ledPin = 13;
+const int potPin = A0;
 int blinkCount = 0;
 
 void setup() {
@@ -7,10 +8,13 @@ void setup() {
 }
 
 void loop() {
+  // Read the potentiometer value (0 to 1023) to use as the delay in milliseconds
+  int blinkDelay = analogRead(potPin);
+  
   digitalWrite(ledPin, HIGH);
-  delay(500);
+  delay(blinkDelay);
   digitalWrite(ledPin, LOW);
-  delay(500);
+  delay(blinkDelay);
   
   blinkCount++;
   Serial.print("Blink count: ");
