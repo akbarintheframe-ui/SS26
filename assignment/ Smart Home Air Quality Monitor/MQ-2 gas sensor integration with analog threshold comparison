@@ -1,0 +1,42 @@
+#define MQ2_PIN               34   // ADC1 pin — GPIO32-39 range; avoid ADC2 (conflicts with WiFi)
+#define WARMUP_TIME_MS         20000
+#define CALIBRATION_SAMPLES    50
+#define ELEVATED_MULTIPLIER    1.5
+#define DANGER_MULTIPLIER      2.5
+
+enum AirQualityState { SAFE, ELEVATED, DANGER };
+
+int baselineMQ2 = 0;
+
+// --- Calibration: establish a clean-air baseline for THIS sensor unit ---
+int calibrateMQ2() {
+  long sum = 0;
+  for (int i = 0; i < CALIBRATION_SAMPLES; i++) {
+    sum += analogRead(MQ2_PIN);
+    delay(100);
+  }
+  return sum / CALIBRATION_SAMPLES;
+}
+
+// --- Threshold comparison: relative to baseline, not absolute ppm ---
+AirQualityState evaluateThreshold(int mq2Value) {
+  if (mq2Value >= baselineMQ2 * DANGER_MULTIPLIER) {
+    return DANGER;
+  } else if (mq2Value >= baselineMQ2 * ELEVATED_MULTIPLIER) {
+    return ELEVATED;
+  }
+  return SAFE;
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(WARMUP_TIME_MS);        // heater must stabilize before readings are meaningful
+  baselineMQ2 = calibrateMQ2();
+}
+
+void loop() {
+  int mq2Value = analogRead(MQ2_PIN);
+  AirQualityState state = evaluateThreshold(mq2Value);
+  // ... pass state to alert-driving code
+  delay(2000);
+}
