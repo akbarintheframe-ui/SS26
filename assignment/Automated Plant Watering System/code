@@ -23,3 +23,35 @@ void loop() {
   digitalWrite(PUMP_PIN, LOW);    // pump OFF (LED off)
   delay(5000);                    // stays off for 5 seconds
 }
+
+#define LDR_PIN 32
+
+// Placeholder threshold — in this wiring, LOWER raw value = brighter light.
+// Below this = bright/clear sky. Above this = dark/overcast (rain proxy).
+// Calibrate against real bright-day vs. overcast readings before deployment.
+#define OVERCAST_THRESHOLD  2000
+
+enum LightState { CLEAR, OVERCAST };
+
+void setup() {
+  Serial.begin(115200);
+}
+
+LightState evaluateLight(int rawValue) {
+  if (rawValue >= OVERCAST_THRESHOLD) {
+    return OVERCAST;
+  }
+  return CLEAR;
+}
+
+void loop() {
+  int ldrValue = analogRead(LDR_PIN);
+  LightState state = evaluateLight(ldrValue);
+
+  Serial.print("LDR raw: ");
+  Serial.print(ldrValue);
+  Serial.print(" | State: ");
+  Serial.println(state == CLEAR ? "CLEAR" : "OVERCAST");
+
+  delay(1000);
+}
