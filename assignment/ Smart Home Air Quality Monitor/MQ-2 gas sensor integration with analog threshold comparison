@@ -40,3 +40,30 @@ void loop() {
   // ... pass state to alert-driving code
   delay(2000);
 }
+
+#include <DHT.h>
+
+#define DHTPIN   5        // GPIO pin connected to DHT11 data pin
+#define DHTTYPE  DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  Serial.begin(115200);
+  dht.begin();
+  // ... MQ-2 warm-up / calibration from previous section can sit here too
+}
+
+void loop() {
+  float humidity    = dht.readHumidity();
+  float temperature = dht.readTemperature();  // Celsius by default
+
+  if (isnan(humidity) || isnan(temperature)) {
+    Serial.println("DHT11 read failed — skipping this cycle");
+  } else {
+    Serial.print("Temp: "); Serial.print(temperature); Serial.print(" C");
+    Serial.print(" | Humidity: "); Serial.print(humidity); Serial.println(" %");
+  }
+
+  delay(2000);  // DHT11 needs at least ~2s between reads — it's a slow sensor
+}
