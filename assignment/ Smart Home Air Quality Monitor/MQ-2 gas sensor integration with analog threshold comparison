@@ -100,3 +100,33 @@ void driveAirQualityLED(AirQualityState state) {
       break;
   }
 }
+
+#define BUZZER_PIN   14
+
+// Tone frequencies (Hz) — distinct enough to be told apart by ear
+#define TONE_ELEVATED  1000
+#define TONE_DANGER    2500
+
+AirQualityState previousState = SAFE;
+
+void setup() {
+  pinMode(BUZZER_PIN, OUTPUT);
+}
+
+void driveBuzzer(AirQualityState state) {
+  if (state == previousState) return;  // only act on state CHANGE
+
+  switch (state) {
+    case SAFE:
+      noTone(BUZZER_PIN);
+      break;
+    case ELEVATED:
+      tone(BUZZER_PIN, TONE_ELEVATED, 200);
+      break;
+    case DANGER:
+      tone(BUZZER_PIN, TONE_DANGER);
+      break;
+  }
+
+  previousState = state;
+}
