@@ -67,3 +67,36 @@ void loop() {
 
   delay(2000);  // DHT11 needs at least ~2s between reads — it's a slow sensor
 }
+
+#define RGB_RED_PIN     27
+#define RGB_GREEN_PIN   26
+#define RGB_BLUE_PIN    14   // unused for this project, but wire it if your module has it
+
+// If your RGB LED is COMMON CATHODE: HIGH = on (this code assumes common cathode)
+// If COMMON ANODE: invert the logic (LOW = on) — check which one you have before flashing
+
+void setup() {
+  pinMode(RGB_RED_PIN, OUTPUT);
+  pinMode(RGB_GREEN_PIN, OUTPUT);
+  pinMode(RGB_BLUE_PIN, OUTPUT);
+}
+
+void setColor(bool red, bool green, bool blue) {
+  digitalWrite(RGB_RED_PIN, red);
+  digitalWrite(RGB_GREEN_PIN, green);
+  digitalWrite(RGB_BLUE_PIN, blue);
+}
+
+void driveAirQualityLED(AirQualityState state) {
+  switch (state) {
+    case SAFE:
+      setColor(false, true, false);   // green
+      break;
+    case ELEVATED:
+      setColor(true, true, false);    // red + green = yellow (mixed color)
+      break;
+    case DANGER:
+      setColor(true, false, false);   // red
+      break;
+  }
+}
