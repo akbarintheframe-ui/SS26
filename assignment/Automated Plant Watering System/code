@@ -127,3 +127,49 @@ void loop() {
 
   delay(30UL * 60UL * 1000UL);  // wait 30 minutes before checking again
 }
+
+
+#define BUTTON_PIN 27
+#define PUMP_PIN   26
+
+#define LOCKOUT_DURATION_MS  (5UL * 60UL * 1000UL)  // 5 minutes in milliseconds
+
+unsigned long lastActivationTime = 0;
+bool lockoutActive = false;
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(PUMP_PIN, OUTPUT);
+}
+
+bool isLockoutActive() {
+  if (!lockoutActive) return false;
+
+  if (millis() - lastActivationTime >= LOCKOUT_DURATION_MS) {
+    lockoutActive = false;   // lockout period has passed, clear it
+    return false;
+  }
+  return true;  // still within the 5-minute window
+}
+
+void checkManualOverride() {
+  bool buttonPressed = (digitalRead(BUTTON_PIN) == LOW);
+
+  if (buttonPressed && !isLockoutActive()) {
+    Serial.println("Manual override activated — pump ON");
+    digitalWrite(PUMP_PIN, HIGH);
+    delay(3000);                    // pump runs for a fixed 3s burst
+    digitalWrite(PUMP_PIN, LOW);
+
+    lastActivationTime = millis();
+    lockoutActive = true;
+  } else if (buttonPressed && isLockoutActive()) {
+    Serial.println("Button pressed, but lockout active — ignored.");
+  }
+}
+
+void loop() {
+  checkManualOverride();
+  delay(200);   // check button roughly 5x per second
+}
