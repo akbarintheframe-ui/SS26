@@ -9,3 +9,17 @@ void loop() {
   Serial.println(soilValue);
   delay(1000);
 }
+
+#define PUMP_PIN 26
+
+void setup() {
+  pinMode(PUMP_PIN, OUTPUT);
+}
+
+void loop() {
+  digitalWrite(PUMP_PIN, HIGH);   // pump ON (LED on)
+  delay(3000);                    // stays on for 3 seconds
+
+  digitalWrite(PUMP_PIN, LOW);    // pump OFF (LED off)
+  delay(5000);                    // stays off for 5 seconds
+}
