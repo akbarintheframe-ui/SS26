@@ -1,24 +1,56 @@
-#define MQ2_PIN               34   // ADC1 pin — GPIO32-39 range; avoid ADC2 (conflicts with WiFi)
-#define WARMUP_TIME_MS         20000
+/*
+ * Air Quality Monitoring System — Tier 1 (Local Safety Loop)
+ * ESP32 + MQ-2 (CO/smoke) + DHT11 (temp/humidity)
+ * LED status (green/yellow/red) + buzzer (3 tones) + Serial CSV logging
+ *
+ * Runs fully standalone — no WiFi/network dependency in this tier.
+ */
+
+#include <DHT.h>
+
+// ---------------- PIN CONFIG ----------------
+#define MQ2_PIN      34   // ADC1 pin — avoid ADC2 (conflicts with WiFi later)
+#define DHTPIN       5
+#define DHTTYPE      DHT11
+#define GREEN_LED    25
+#define YELLOW_LED   26
+#define RED_LED      27
+#define BUZZER_PIN   14
+// ---------------------------------------------
+
+#define WARMUP_TIME_MS         20000   // MQ-2 heater stabilization time
 #define CALIBRATION_SAMPLES    50
 #define ELEVATED_MULTIPLIER    1.5
 #define DANGER_MULTIPLIER      2.5
+#define READ_INTERVAL_MS       2000
+
+#define TONE_ELEVATED  1000
+#define TONE_DANGER    2500
+
+DHT dht(DHTPIN, DHTTYPE);
 
 enum AirQualityState { SAFE, ELEVATED, DANGER };
+AirQualityState currentState = SAFE;
+AirQualityState previousState = SAFE;  // used to only re-trigger buzzer on change
 
 int baselineMQ2 = 0;
+unsigned long lastReadTime = 0;
 
-// --- Calibration: establish a clean-air baseline for THIS sensor unit ---
+// ---------------- MQ-2 calibration ----------------
 int calibrateMQ2() {
+  Serial.println("Calibrating MQ-2 in clean air...");
   long sum = 0;
   for (int i = 0; i < CALIBRATION_SAMPLES; i++) {
     sum += analogRead(MQ2_PIN);
     delay(100);
   }
-  return sum / CALIBRATION_SAMPLES;
+  int baseline = sum / CALIBRATION_SAMPLES;
+  Serial.print("Baseline established: ");
+  Serial.println(baseline);
+  return baseline;
 }
 
-// --- Threshold comparison: relative to baseline, not absolute ppm ---
+// ---------------- Threshold logic ----------------
 AirQualityState evaluateThreshold(int mq2Value) {
   if (mq2Value >= baselineMQ2 * DANGER_MULTIPLIER) {
     return DANGER;
@@ -28,93 +60,22 @@ AirQualityState evaluateThreshold(int mq2Value) {
   return SAFE;
 }
 
-void setup() {
-  Serial.begin(115200);
-  delay(WARMUP_TIME_MS);        // heater must stabilize before readings are meaningful
-  baselineMQ2 = calibrateMQ2();
-}
+// ---------------- LED output ----------------
+void driveLED(AirQualityState state) {
+  digitalWrite(GREEN_LED, LOW);
+  digitalWrite(YELLOW_LED, LOW);
+  digitalWrite(RED_LED, LOW);
 
-void loop() {
-  int mq2Value = analogRead(MQ2_PIN);
-  AirQualityState state = evaluateThreshold(mq2Value);
-  // ... pass state to alert-driving code
-  delay(2000);
-}
-
-#include <DHT.h>
-
-#define DHTPIN   5        // GPIO pin connected to DHT11 data pin
-#define DHTTYPE  DHT11
-
-DHT dht(DHTPIN, DHTTYPE);
-
-void setup() {
-  Serial.begin(115200);
-  dht.begin();
-  // ... MQ-2 warm-up / calibration from previous section can sit here too
-}
-
-void loop() {
-  float humidity    = dht.readHumidity();
-  float temperature = dht.readTemperature();  // Celsius by default
-
-  if (isnan(humidity) || isnan(temperature)) {
-    Serial.println("DHT11 read failed — skipping this cycle");
-  } else {
-    Serial.print("Temp: "); Serial.print(temperature); Serial.print(" C");
-    Serial.print(" | Humidity: "); Serial.print(humidity); Serial.println(" %");
-  }
-
-  delay(2000);  // DHT11 needs at least ~2s between reads — it's a slow sensor
-}
-
-#define RGB_RED_PIN     27
-#define RGB_GREEN_PIN   26
-#define RGB_BLUE_PIN    14   // unused for this project, but wire it if your module has it
-
-// If your RGB LED is COMMON CATHODE: HIGH = on (this code assumes common cathode)
-// If COMMON ANODE: invert the logic (LOW = on) — check which one you have before flashing
-
-void setup() {
-  pinMode(RGB_RED_PIN, OUTPUT);
-  pinMode(RGB_GREEN_PIN, OUTPUT);
-  pinMode(RGB_BLUE_PIN, OUTPUT);
-}
-
-void setColor(bool red, bool green, bool blue) {
-  digitalWrite(RGB_RED_PIN, red);
-  digitalWrite(RGB_GREEN_PIN, green);
-  digitalWrite(RGB_BLUE_PIN, blue);
-}
-
-void driveAirQualityLED(AirQualityState state) {
   switch (state) {
-    case SAFE:
-      setColor(false, true, false);   // green
-      break;
-    case ELEVATED:
-      setColor(true, true, false);    // red + green = yellow (mixed color)
-      break;
-    case DANGER:
-      setColor(true, false, false);   // red
-      break;
+    case SAFE:     digitalWrite(GREEN_LED, HIGH);  break;
+    case ELEVATED: digitalWrite(YELLOW_LED, HIGH); break;
+    case DANGER:   digitalWrite(RED_LED, HIGH);    break;
   }
 }
 
-#define BUZZER_PIN   14
-
-// Tone frequencies (Hz) — distinct enough to be told apart by ear
-#define TONE_ELEVATED  1000
-#define TONE_DANGER    2500
-
-AirQualityState previousState = SAFE;
-
-void setup() {
-  pinMode(BUZZER_PIN, OUTPUT);
-}
-
+// ---------------- Buzzer output (only acts on state CHANGE) ----------------
 void driveBuzzer(AirQualityState state) {
-  if (state == previousState) return;  // only act on state CHANGE
+  if (state == previousState) return;
 
   switch (state) {
     case SAFE:
@@ -124,9 +85,72 @@ void driveBuzzer(AirQualityState state) {
       tone(BUZZER_PIN, TONE_ELEVATED, 200);
       break;
     case DANGER:
-      tone(BUZZER_PIN, TONE_DANGER);
+      tone(BUZZER_PIN, TONE_DANGER);   // no duration = keeps playing until noTone()
       break;
   }
+}
 
-  previousState = state;
+// ---------------- CSV logging ----------------
+void logReadingCSV(unsigned long timestamp, int mq2Value, float mq2Ratio,
+                    float temperature, float humidity, AirQualityState state) {
+  Serial.print(timestamp);
+  Serial.print(",");
+  Serial.print(mq2Value);
+  Serial.print(",");
+  Serial.print(mq2Ratio, 2);
+  Serial.print(",");
+
+  if (isnan(temperature)) Serial.print("NA");
+  else Serial.print(temperature, 1);
+  Serial.print(",");
+
+  if (isnan(humidity)) Serial.print("NA");
+  else Serial.print(humidity, 1);
+  Serial.print(",");
+
+  switch (state) {
+    case SAFE:     Serial.println("SAFE");     break;
+    case ELEVATED: Serial.println("ELEVATED"); break;
+    case DANGER:   Serial.println("DANGER");   break;
+  }
+}
+
+// ---------------- Setup ----------------
+void setup() {
+  Serial.begin(115200);
+  delay(500);
+
+  pinMode(GREEN_LED, OUTPUT);
+  pinMode(YELLOW_LED, OUTPUT);
+  pinMode(RED_LED, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+
+  dht.begin();
+
+  Serial.println("Warming up MQ-2 sensor...");
+  delay(WARMUP_TIME_MS);
+  baselineMQ2 = calibrateMQ2();
+
+  // CSV header — printed once at boot
+  Serial.println("timestamp_ms,mq2_raw,mq2_ratio,temperature_c,humidity_pct,state");
+}
+
+// ---------------- Main loop ----------------
+void loop() {
+  if (millis() - lastReadTime >= READ_INTERVAL_MS) {
+    lastReadTime = millis();
+
+    int mq2Value = analogRead(MQ2_PIN);
+    float humidity = dht.readHumidity();
+    float temperature = dht.readTemperature();
+    float mq2Ratio = (float)mq2Value / baselineMQ2;
+
+    currentState = evaluateThreshold(mq2Value);
+
+    driveLED(currentState);
+    driveBuzzer(currentState);
+    logReadingCSV(millis(), mq2Value, mq2Ratio, temperature, humidity, currentState);
+
+    previousState = currentState;
+  }
 }
