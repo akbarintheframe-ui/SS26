@@ -55,3 +55,75 @@ void loop() {
 
   delay(1000);
 }
+
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+
+const char* WIFI_SSID     = "YOUR_WIFI_SSID";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const char* API_KEY       = "YOUR_OPENWEATHERMAP_KEY";
+
+// J&K farm plot coordinates — replace with actual location
+const float LATITUDE  = 34.0837;
+const float LONGITUDE = 74.7973;
+
+void setup() {
+  Serial.begin(115200);
+
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.println("Connecting to WiFi...");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nWiFi connected.");
+}
+
+bool checkRecentRain() {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi not connected — cannot check rain.");
+    return true;  // treat "can't check" as "assume rain" — safest for saffron
+  }
+
+  HTTPClient http;
+  String url = "http://api.openweathermap.org/data/2.5/weather?lat=" 
+               + String(LATITUDE, 4) + "&lon=" + String(LONGITUDE, 4) 
+               + "&appid=" + API_KEY;
+
+  http.begin(url);
+  int httpCode = http.GET();
+
+  if (httpCode != 200) {
+    Serial.print("API call failed, code: ");
+    Serial.println(httpCode);
+    http.end();
+    return true;  // failure → assume rain, block watering (your safety rule)
+  }
+
+  String payload = http.getString();
+  http.end();
+
+  StaticJsonDocument<1024> doc;
+  deserializeJson(doc, payload);
+
+  // OpenWeatherMap includes a "rain" object only if it's currently raining
+  bool isRaining = doc.containsKey("rain");
+
+  Serial.print("Rain detected by API: ");
+  Serial.println(isRaining ? "YES" : "NO");
+
+  return isRaining;
+}
+
+void loop() {
+  bool rainDetected = checkRecentRain();
+
+  if (rainDetected) {
+    Serial.println("API says rain — watering blocked.");
+  } else {
+    Serial.println("API says clear — watering allowed (pending other checks).");
+  }
+
+  delay(30UL * 60UL * 1000UL);  // wait 30 minutes before checking again
+}
