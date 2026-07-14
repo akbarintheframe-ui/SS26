@@ -1,0 +1,676 @@
+[
+    {
+        "id": "d451bc07da7c437a",
+        "type": "tab",
+        "label": "water monitoring system",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "63fed302fb02481f",
+        "type": "mqtt in",
+        "z": "d451bc07da7c437a",
+        "name": "",
+        "topic": "aquawatch/+/data",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "f350b7a2c489e410",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 270,
+        "y": 520,
+        "wires": [
+            [
+                "0fe1b7fba8c6a60f",
+                "74ad358ce945bcf1"
+            ]
+        ]
+    },
+    {
+        "id": "0fe1b7fba8c6a60f",
+        "type": "switch",
+        "z": "d451bc07da7c437a",
+        "name": "",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "cont",
+                "v": "node1",
+                "vt": "str"
+            },
+            {
+                "t": "cont",
+                "v": "node2",
+                "vt": "str"
+            },
+            {
+                "t": "cont",
+                "v": "node3",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 3,
+        "x": 550,
+        "y": 520,
+        "wires": [
+            [
+                "cba33fb9be822db9"
+            ],
+            [
+                "1fa8255d14c1469d"
+            ],
+            [
+                "a2ad1a8519e44aa1"
+            ]
+        ]
+    },
+    {
+        "id": "753cd4ee4db9a069",
+        "type": "inject",
+        "z": "d451bc07da7c437a",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "10",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 330,
+        "y": 160,
+        "wires": [
+            [
+                "0999d47ce1a621cf"
+            ]
+        ]
+    },
+    {
+        "id": "0999d47ce1a621cf",
+        "type": "function",
+        "z": "d451bc07da7c437a",
+        "name": "function 1",
+        "func": "// Simulated readings for 3 AquaWatch nodes\nconst nodes = [\n    { id: \"node1\", name: \"Raw Water Inlet\", ph: 7.6, tds: 320, turb: 3.2, temp: 26.5 },\n    { id: \"node2\", name: \"Post-RO Treatment\", ph: 7.1, tds: 8.0, turb: 0.6, temp: 25.8 },\n    { id: \"node3\", name: \"Point of Use\", ph: 7.0, tds: 7.5, turb: 0.4, temp: 25.5 }\n];\n\nconst messages = nodes.map(n => {\n    // add small random jitter so values change slightly each cycle\n    const payload = {\n        node: n.id,\n        node_name: n.name,\n        ph: +(n.ph + (Math.random() - 0.5) * 0.2).toFixed(2),\n        tds: +(n.tds + (Math.random() - 0.5) * 4).toFixed(1),\n        turbidity: +(n.turb + (Math.random() - 0.5) * 0.3).toFixed(2),\n        temperature: +(n.temp + (Math.random() - 0.5) * 1.0).toFixed(1)\n    };\n\n    return {\n        topic: `aquawatch/${n.id}/data`,\n        payload: JSON.stringify(payload)\n    };\n});\n\n// Send all 3 messages out together\nreturn [messages];\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 560,
+        "y": 160,
+        "wires": [
+            [
+                "3588b5077f63947b"
+            ]
+        ]
+    },
+    {
+        "id": "3588b5077f63947b",
+        "type": "mqtt out",
+        "z": "d451bc07da7c437a",
+        "name": "",
+        "topic": "",
+        "qos": "0",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "f350b7a2c489e410",
+        "x": 770,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "cba33fb9be822db9",
+        "type": "function",
+        "z": "d451bc07da7c437a",
+        "name": "node1",
+        "func": "const data = msg.payload;\n\nconst msgPh   = { payload: data.ph,          topic: \"ph\" };\nconst msgTds  = { payload: data.tds,         topic: \"tds\" };\nconst msgTurb = { payload: data.turbidity,   topic: \"turbidity\" };\nconst msgTemp = { payload: data.temperature, topic: \"temperature\" };\n\nreturn [msgPh, msgTds, msgTurb, msgTemp];",
+        "outputs": 4,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 730,
+        "y": 340,
+        "wires": [
+            [
+                "90239116a8024be1"
+            ],
+            [
+                "242a63aeed25064f"
+            ],
+            [
+                "2fd5d21d74213f67"
+            ],
+            [
+                "966eb06038f8aebf"
+            ]
+        ]
+    },
+    {
+        "id": "1fa8255d14c1469d",
+        "type": "function",
+        "z": "d451bc07da7c437a",
+        "name": "node2",
+        "func": "// Splits one node's combined reading into 4 separate messages\nconst data = msg.payload;\n\nconst msgPh   = { payload: data.ph,          topic: \"ph\" };\nconst msgTds  = { payload: data.tds,         topic: \"tds\" };\nconst msgTurb = { payload: data.turbidity,   topic: \"turbidity\" };\nconst msgTemp = { payload: data.temperature, topic: \"temperature\" };\n\nreturn [msgPh, msgTds, msgTurb, msgTemp];\n",
+        "outputs": 4,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 730,
+        "y": 540,
+        "wires": [
+            [
+                "721a696fe992fd3c"
+            ],
+            [
+                "ee29eb20c9501e1e"
+            ],
+            [
+                "e56ca14ce33a17ce"
+            ],
+            [
+                "6f9ab524dc29c8a7"
+            ]
+        ]
+    },
+    {
+        "id": "a2ad1a8519e44aa1",
+        "type": "function",
+        "z": "d451bc07da7c437a",
+        "name": "node 3",
+        "func": "// Splits one node's combined reading into 4 separate messages\nconst data = msg.payload;\n\nconst msgPh   = { payload: data.ph,          topic: \"ph\" };\nconst msgTds  = { payload: data.tds,         topic: \"tds\" };\nconst msgTurb = { payload: data.turbidity,   topic: \"turbidity\" };\nconst msgTemp = { payload: data.temperature, topic: \"temperature\" };\n\nreturn [msgPh, msgTds, msgTurb, msgTemp];",
+        "outputs": 4,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 730,
+        "y": 740,
+        "wires": [
+            [
+                "a451814bbc5e9109"
+            ],
+            [
+                "f9e5aae4fd593f08"
+            ],
+            [
+                "8907fb6ca8fe9152"
+            ],
+            [
+                "af0530810f4677c9"
+            ]
+        ]
+    },
+    {
+        "id": "90239116a8024be1",
+        "type": "ui_gauge",
+        "z": "d451bc07da7c437a",
+        "name": "",
+        "group": "cf077ae3c74a77c3",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "gtype": "donut",
+        "title": "pH",
+        "label": "units",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "10",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 950,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "242a63aeed25064f",
+        "type": "ui_gauge",
+        "z": "d451bc07da7c437a",
+        "name": "",
+        "group": "cf077ae3c74a77c3",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "gtype": "donut",
+        "title": "TDS",
+        "label": "ppm",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 10,
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 950,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "2fd5d21d74213f67",
+        "type": "ui_gauge",
+        "z": "d451bc07da7c437a",
+        "name": "",
+        "group": "cf077ae3c74a77c3",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "gtype": "donut",
+        "title": "turbidity",
+        "label": "units",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 10,
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 960,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "966eb06038f8aebf",
+        "type": "ui_gauge",
+        "z": "d451bc07da7c437a",
+        "name": "",
+        "group": "cf077ae3c74a77c3",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "gtype": "donut",
+        "title": "temp",
+        "label": "units",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "100",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 950,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "721a696fe992fd3c",
+        "type": "ui_gauge",
+        "z": "d451bc07da7c437a",
+        "name": "",
+        "group": "bdee6890584224fd",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "gtype": "wave",
+        "title": "ph",
+        "label": "units",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 10,
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 950,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "ee29eb20c9501e1e",
+        "type": "ui_gauge",
+        "z": "d451bc07da7c437a",
+        "name": "",
+        "group": "bdee6890584224fd",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "gtype": "wave",
+        "title": "tds",
+        "label": "units",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 10,
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 950,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "e56ca14ce33a17ce",
+        "type": "ui_gauge",
+        "z": "d451bc07da7c437a",
+        "name": "",
+        "group": "bdee6890584224fd",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "gtype": "wave",
+        "title": "turbidity",
+        "label": "units",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 10,
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 960,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "6f9ab524dc29c8a7",
+        "type": "ui_gauge",
+        "z": "d451bc07da7c437a",
+        "name": "",
+        "group": "bdee6890584224fd",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "gtype": "wave",
+        "title": "temp",
+        "label": "units",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "100",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 950,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "a451814bbc5e9109",
+        "type": "ui_gauge",
+        "z": "d451bc07da7c437a",
+        "name": "",
+        "group": "dec65c0514691008",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "ph",
+        "label": "units",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 10,
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 950,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "f9e5aae4fd593f08",
+        "type": "ui_gauge",
+        "z": "d451bc07da7c437a",
+        "name": "",
+        "group": "dec65c0514691008",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "tds",
+        "label": "units",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 10,
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 950,
+        "y": 720,
+        "wires": []
+    },
+    {
+        "id": "8907fb6ca8fe9152",
+        "type": "ui_gauge",
+        "z": "d451bc07da7c437a",
+        "name": "",
+        "group": "dec65c0514691008",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "turbidity",
+        "label": "units",
+        "format": "{{value}}",
+        "min": 0,
+        "max": 10,
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 960,
+        "y": 760,
+        "wires": []
+    },
+    {
+        "id": "af0530810f4677c9",
+        "type": "ui_gauge",
+        "z": "d451bc07da7c437a",
+        "name": "",
+        "group": "dec65c0514691008",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "temp",
+        "label": "units",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "100",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 950,
+        "y": 800,
+        "wires": []
+    },
+    {
+        "id": "74ad358ce945bcf1",
+        "type": "debug",
+        "z": "d451bc07da7c437a",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 440,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "f350b7a2c489e410",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "ea418a108a874b14bc1d538567344a7e.s1.eu.hivemq.cloud",
+        "port": "8883",
+        "tls": "",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": true,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "cf077ae3c74a77c3",
+        "type": "ui_group",
+        "name": "node 1",
+        "tab": "a07ba2d1c7797447",
+        "order": 2,
+        "disp": true,
+        "width": 6,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "bdee6890584224fd",
+        "type": "ui_group",
+        "name": "node 2",
+        "tab": "12a7a82636df2632",
+        "order": 1,
+        "disp": true,
+        "width": 6,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "dec65c0514691008",
+        "type": "ui_group",
+        "name": "node 3",
+        "tab": "ef9f46d1706137b2",
+        "order": 1,
+        "disp": true,
+        "width": 6,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "a07ba2d1c7797447",
+        "type": "ui_tab",
+        "name": "node 1",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "12a7a82636df2632",
+        "type": "ui_tab",
+        "name": "node 2",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "ef9f46d1706137b2",
+        "type": "ui_tab",
+        "name": "node 3",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "29e9826b72bea5ed",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-dashboard": "3.6.6"
+        }
+    }
+]
