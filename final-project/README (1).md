@@ -113,4 +113,3 @@ This was a deliberate design choice: it allowed the entire cloud-to-dashboard pi
 
 ---
 
-*Built as part of a B.Tech ECE portfolio project, ZHCET.*
