@@ -75,17 +75,6 @@ This was a deliberate design choice: it allowed the entire cloud-to-dashboard pi
 
 ---
 
-## Alert Thresholds (AAMI Dialysis Water Standard)
-
-| Parameter | Node 1 (Raw) | Node 2 (Post-RO) | Node 3 (Point of Use) |
-|---|---|---|---|
-| pH | 6.0 – 9.0 | 6.5 – 8.5 | 6.5 – 8.5 |
-| TDS | < 500 ppm | < 10 ppm | < 10 ppm |
-| Turbidity | < 5 NTU | < 1 NTU | < 0.5 NTU |
-| Temperature | 5 – 35 °C | 15 – 30 °C | 20 – 28 °C |
-
----
-
 ## Tech Stack
 
 - **Hardware:** ESP32 (WROOM-32), pH/TDS/turbidity sensors, DS18B20 temperature probe
